@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Ligação IA · Chamada com Gemini</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📞</text></svg>">
+</head>
+<body>
+  <!-- Tela inicial: Discador / Inserção da chave API -->
+  <div id="dialer-screen" class="screen active">
+    <div class="glass-card">
+      <div class="logo">📞</div>
+      <h1>Ligação com IA</h1>
+      <p class="subtitle">Converse em tempo real com o Gemini como se fosse uma ligação telefônica.</p>
+      
+      <label for="api-key">Chave API do Gemini</label>
+      <input 
+        type="password" 
+        id="api-key" 
+        placeholder="Cole sua chave aqui (ex: AIza...)" 
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <small>A chave fica apenas no sessionStorage deste navegador. Nunca é enviada para nenhum servidor próprio.</small>
+      
+      <button id="start-call" class="btn-call" disabled>
+        <span class="icon">📞</span> Iniciar Ligação
+      </button>
+      
+      <div id="error-message" class="error" role="alert"></div>
+      
+      <p class="hint">
+        Obtenha sua chave gratuita em 
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Tela de chamada ativa -->
+  <div id="call-screen" class="screen">
+    <div class="call-container">
+      <div class="call-header">
+        <div class="avatar" id="avatar">🤖</div>
+        <h2>Assistente IA</h2>
+        <div id="status" class="status">Chamando...</div>
+        <div id="timer" class="timer">00:00</div>
+      </div>
+
+      <!-- Visualizador de ondas sonoras -->
+      <div id="waveform" class="waveform" aria-hidden="true">
+        <!-- Barras geradas via JS -->
+      </div>
+
+      <!-- Controles da chamada -->
+      <div class="controls">
+        <button id="mute-btn" class="control-btn" title="Mudo">
+          <span class="icon">🎤</span>
+          <span class="label">Mudo</span>
+        </button>
+        <button id="keypad-btn" class="control-btn" title="Teclado DTMF">
+          <span class="icon">🔢</span>
+          <span class="label">Teclado</span>
+        </button>
+        <button id="pause-btn" class="control-btn" title="Pausar / Retomar">
+          <span class="icon">⏸️</span>
+          <span class="label">Pausar</span>
+        </button>
+        <button id="end-btn" class="control-btn end" title="Encerrar chamada">
+          <span class="icon">📞</span>
+          <span class="label">Encerrar</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Overlay do teclado DTMF -->
+    <div id="keypad" class="keypad hidden">
+      <div class="keypad-grid">
+        <button class="key" data-tone="1">1</button>
+        <button class="key" data-tone="2">2</button>
+        <button class="key" data-tone="3">3</button>
+        <button class="key" data-tone="4">4</button>
+        <button class="key" data-tone="5">5</button>
+        <button class="key" data-tone="6">6</button>
+        <button class="key" data-tone="7">7</button>
+        <button class="key" data-tone="8">8</button>
+        <button class="key" data-tone="9">9</button>
+        <button class="key" data-tone="*">*</button>
+        <button class="key" data-tone="0">0</button>
+        <button class="key" data-tone="#">#</button>
+      </div>
+      <button id="close-keypad" class="close-keypad">Fechar</button>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
