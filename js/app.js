@@ -35,8 +35,8 @@ class PhoneCallAI {
     this.audioContext = null;
     this.waveformInterval = null;
 
-    // Modelo Gemini (2.5-flash conforme solicitado; pode ser alterado se necessário)
-    this.model = 'gemini-2.5-flash';
+    // Modelo estável e recomendado (gemini-2.5-flash está depreciado para chaves novas)
+    this.model = 'gemini-2.5-flash-lite';
 
     this.init();
   }
@@ -125,7 +125,7 @@ class PhoneCallAI {
     try {
       await this.testApiKey();
     } catch (err) {
-      this.showError('Chave de API inválida ou sem permissão. Verifique em Google AI Studio.');
+      this.showError(err.message || 'Chave de API inválida ou sem permissão. Verifique em Google AI Studio.');
       return;
     }
 
@@ -143,7 +143,7 @@ class PhoneCallAI {
   }
 
   async testApiKey() {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -151,7 +151,12 @@ class PhoneCallAI {
         contents: [{ parts: [{ text: 'oi' }] }]
       })
     });
-    if (!res.ok) throw new Error('API error');
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const msg = errData.error?.message || `Erro ${res.status}: modelo ou chave inválida`;
+      throw new Error(msg);
+    }
   }
 
   switchToCallScreen() {
@@ -282,7 +287,7 @@ class PhoneCallAI {
   }
 
   async askGemini() {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
 
     const body = {
       contents: this.conversationHistory,
