@@ -161,7 +161,7 @@ class PhoneCallAI {
     }
 
     if (this.contactNameEl) {
-      this.contactNameEl.textContent = isDemo ? 'Assistente (Demo)' : 'Assistente IA';
+      this.contactNameEl.textContent = isDemo ? 'Diz IA (Demo)' : 'Diz IA';
     }
 
     this.switchToCallScreen();
@@ -173,9 +173,8 @@ class PhoneCallAI {
       this.setStatus('Ouvindo...');
       if (this.waveformEl) this.waveformEl.classList.add('active');
 
-      if (isDemo) {
-        await this.speak('Olá! Modo demonstração ativado. Pode falar comigo.');
-      }
+      // Saudação inicial
+      await this.speak('Bem-vindo ao Diz IA. Como posso ajudar?');
       this.startListening();
     }, 1000);
   }
@@ -312,10 +311,10 @@ class PhoneCallAI {
     const t = (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
     if (/oi|ola|e ai|tudo bem|bom dia|boa tarde|boa noite/.test(t)) {
-      return 'Olá! Tudo bem? Estou no modo demonstração. Como posso ajudar?';
+      return 'Olá! Tudo bem? Como posso ajudar?';
     }
     if (/seu nome|quem e voce|quem e voc/.test(t)) {
-      return 'Sou um assistente de demonstração. Para conversas mais inteligentes use uma chave do Gemini.';
+      return 'Sou o Diz IA, um assistente de voz. No modo demonstração minhas respostas são limitadas.';
     }
     if (/hora|que horas/.test(t)) {
       const now = new Date();
@@ -346,7 +345,7 @@ class PhoneCallAI {
     const body = {
       contents: this.conversationHistory,
       systemInstruction: {
-        parts: [{ text: 'Você é um assistente amigável falando ao telefone em português brasileiro. Responda de forma curta, natural e coloquial. Sem Markdown. Máximo 2-3 frases.' }]
+        parts: [{ text: 'Você é o Diz IA, um assistente amigável falando ao telefone em português brasileiro. Responda de forma curta, natural e coloquial. Sem Markdown. Máximo 2-3 frases.' }]
       },
       generationConfig: { temperature: 0.8, maxOutputTokens: 120 }
     };
