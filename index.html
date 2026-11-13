@@ -9,32 +9,38 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📞</text></svg>">
 </head>
 <body>
-  <!-- Tela inicial: Discador / Inserção da chave API -->
+  <!-- Tela inicial -->
   <div id="dialer-screen" class="screen active">
     <div class="glass-card">
       <div class="logo">📞</div>
       <h1>Ligação com IA</h1>
-      <p class="subtitle">Converse em tempo real com o Gemini como se fosse uma ligação telefônica.</p>
+      <p class="subtitle">Converse por voz como se fosse uma ligação telefônica.</p>
       
-      <label for="api-key">Chave API do Gemini</label>
+      <button id="start-demo" class="btn-call" style="background:linear-gradient(135deg,#4f46e5,#7c3aed); margin-bottom:16px;">
+        <span class="icon">✨</span> Experimentar Agora (sem chave)
+      </button>
+
+      <div style="text-align:center; margin:12px 0; color:#888; font-size:0.85rem;">ou use sua própria chave para conversa real</div>
+
+      <label for="api-key">Chave API do Gemini <span style="font-weight:400;color:#888;">(opcional)</span></label>
       <input 
         type="password" 
         id="api-key" 
-        placeholder="Cole sua chave aqui (ex: AIza...)" 
+        placeholder="Cole sua chave aqui (opcional)" 
         autocomplete="off"
         spellcheck="false"
       >
-      <small>A chave fica apenas no sessionStorage deste navegador. Nunca é enviada para nenhum servidor próprio.</small>
+      <small>A chave fica só no seu navegador. Nunca é enviada para servidores nossos.</small>
       
-      <button id="start-call" class="btn-call" disabled>
-        <span class="icon">📞</span> Iniciar Ligação
+      <button id="start-call" class="btn-call" disabled style="margin-top:8px;">
+        <span class="icon">📞</span> Iniciar Ligação com Gemini
       </button>
       
       <div id="error-message" class="error" role="alert"></div>
       
       <p class="hint">
-        Obtenha sua chave gratuita em 
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>
+        Quer conversa real e ilimitada? 
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Obtenha uma chave gratuita em 30 segundos</a>
       </p>
     </div>
   </div>
@@ -44,7 +50,7 @@
     <div class="call-container">
       <div class="call-header">
         <div class="avatar" id="avatar">🤖</div>
-        <h2>Assistente IA</h2>
+        <h2 id="contact-name">Assistente IA</h2>
         <div id="status" class="status">Chamando...</div>
         <div id="timer" class="timer">00:00</div>
         
@@ -56,9 +62,7 @@
       </div>
 
       <!-- Visualizador de ondas sonoras -->
-      <div id="waveform" class="waveform" aria-hidden="true">
-        <!-- Barras geradas via JS -->
-      </div>
+      <div id="waveform" class="waveform" aria-hidden="true"></div>
 
       <!-- Controles da chamada -->
       <div class="controls">
