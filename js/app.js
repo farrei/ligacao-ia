@@ -150,7 +150,24 @@ class PhoneCallAI {
       'Alô, alô! Diz IA na linha. Como está seu dia? Me conta.',
       'Oi, tudo bem? Aqui é o Diz IA. Ligação iniciada. Pode falar à vontade.',
       'Bem-vindo ao Diz IA. Eu sou sua assistente de voz. O que você precisa hoje?',
-      'Alô! Diz IA falando. Sua chamada foi atendida. Pode falar.'
+      'Alô! Diz IA falando. Sua chamada foi atendida. Pode falar.',
+      'Ei, oi! Aqui é o Diz IA. Ligação estabelecida. Pode soltar o verbo.',
+      'Bem-vindo ao Diz IA. Eu tô aqui, pode falar que eu tô ouvindo.',
+      'Alô, quem fala é o Diz IA. Ligação conectada com sucesso. O que manda?',
+      'Oi! Diz IA na área. Pode falar, não precisa ter vergonha.',
+      'Bem-vindo! Aqui é o Diz IA. Sua linha direta com a IA. Pode falar.',
+      'Alô! Ligação atendida pelo Diz IA. Em que posso ser útil hoje?',
+      'Oi, tudo certo? Diz IA falando. Pode contar o que você precisa.',
+      'Bem-vindo ao Diz IA. Estou pronto pra conversar. Pode começar.',
+      'Alô, alô! Aqui é o Diz IA. Sua chamada chegou. Pode falar.',
+      'Oi! Ligação iniciada. Diz IA na escuta. O que você quer conversar?',
+      'Bem-vindo! Diz IA aqui. Pode falar que eu tô 100% atento.',
+      'Alô! Você ligou pro Diz IA. Ligação conectada. Pode soltar.',
+      'Oi, beleza? Aqui é o Diz IA. Pode falar, tô ouvindo direitinho.',
+      'Bem-vindo ao Diz IA. Sua assistente virtual de voz está online. Pode falar.',
+      'Alô! Diz IA falando. Ligação estabelecida. Em que posso ajudar agora?',
+      'Oi! Aqui é o Diz IA. Pode falar à vontade, tô aqui pra isso.',
+      'Bem-vindo! Ligação atendida. Diz IA na linha. Me conta o que precisa.'
     ];
     return greetings[Math.floor(Math.random() * greetings.length)];
   }
