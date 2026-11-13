@@ -35,8 +35,8 @@ class PhoneCallAI {
     this.audioContext = null;
     this.waveformInterval = null;
 
-    // Modelo estável e recomendado (gemini-2.5-flash está depreciado para chaves novas)
-    this.model = 'gemini-2.5-flash-lite';
+    // Modelo recomendado para novos usuários (novembro 2026)
+    this.model = 'gemini-3.5-flash-lite';
 
     this.init();
   }
