@@ -21,6 +21,7 @@ class PhoneCallAI {
     this.endBtn = document.getElementById('end-btn');
     this.keypad = document.getElementById('keypad');
     this.closeKeypadBtn = document.getElementById('close-keypad');
+    this.voiceSelect = document.getElementById('voice-select');
 
     // Estado
     this.apiKey = '';
@@ -34,6 +35,7 @@ class PhoneCallAI {
     this.conversationHistory = [];
     this.audioContext = null;
     this.waveformInterval = null;
+    this.selectedVoice = null;
 
     // Modelo recomendado para novos usuários (novembro 2026)
     this.model = 'gemini-3.5-flash-lite';
@@ -46,6 +48,7 @@ class PhoneCallAI {
     this.loadApiKey();
     this.createWaveformBars();
     this.checkSpeechSupport();
+    this.loadVoices();
   }
 
   checkSpeechSupport() {
@@ -72,6 +75,14 @@ class PhoneCallAI {
     this.endBtn.addEventListener('click', () => this.endCall());
     this.closeKeypadBtn.addEventListener('click', () => this.toggleKeypad(false));
 
+    if (this.voiceSelect) {
+      this.voiceSelect.addEventListener('change', () => {
+        const name = this.voiceSelect.value;
+        const voices = speechSynthesis.getVoices();
+        this.selectedVoice = voices.find(v => v.name === name) || null;
+      });
+    }
+
     // Teclas do DTMF
     document.querySelectorAll('.key').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -79,6 +90,40 @@ class PhoneCallAI {
         this.playDTMF(tone);
       });
     });
+  }
+
+  loadVoices() {
+    const populate = () => {
+      if (!this.voiceSelect) return;
+      const voices = speechSynthesis.getVoices();
+      const ptVoices = voices.filter(v => v.lang.startsWith('pt-BR') || v.lang.startsWith('pt'));
+      
+      // Limpa opções antigas (mantém a primeira)
+      while (this.voiceSelect.options.length > 1) {
+        this.voiceSelect.remove(1);
+      }
+
+      ptVoices.forEach(voice => {
+        const opt = document.createElement('option');
+        opt.value = voice.name;
+        opt.textContent = `${voice.name} (${voice.lang})`;
+        this.voiceSelect.appendChild(opt);
+      });
+
+      // Tenta pré-selecionar uma voz mais robusta/humana se existir
+      const preferred = ptVoices.find(v => 
+        /google|natural|premium|enhanced|neural|female|feminino|masculino|male/i.test(v.name)
+      ) || ptVoices[0];
+      if (preferred) {
+        this.selectedVoice = preferred;
+        this.voiceSelect.value = preferred.name;
+      }
+    };
+
+    populate();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populate;
+    }
   }
 
   loadApiKey() {
@@ -336,13 +381,22 @@ Seja empático e natural.`
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'pt-BR';
-      utterance.rate = 1.05;
-      utterance.pitch = 1.0;
+      // Ajustes para soar mais natural e robusta
+      utterance.rate = 0.95;
+      utterance.pitch = 0.95;
+      utterance.volume = 1.0;
 
-      // Tenta escolher uma voz pt-BR se disponível
-      const voices = speechSynthesis.getVoices();
-      const ptVoice = voices.find(v => v.lang.startsWith('pt-BR') || v.lang.startsWith('pt'));
-      if (ptVoice) utterance.voice = ptVoice;
+      // Usa a voz selecionada ou a melhor disponível
+      if (this.selectedVoice) {
+        utterance.voice = this.selectedVoice;
+      } else {
+        const voices = speechSynthesis.getVoices();
+        const preferred = voices.find(v => 
+          (v.lang.startsWith('pt-BR') || v.lang.startsWith('pt')) &&
+          /google|natural|premium|enhanced|neural/i.test(v.name)
+        ) || voices.find(v => v.lang.startsWith('pt-BR') || v.lang.startsWith('pt'));
+        if (preferred) utterance.voice = preferred;
+      }
 
       utterance.onend = () => {
         this.isSpeaking = false;
