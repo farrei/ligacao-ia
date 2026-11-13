@@ -8,6 +8,15 @@ Ideal para portfólio: demonstra domínio de Web Speech API, Web Audio API, inte
 
 ---
 
+## 🌐 Demo ao vivo
+
+**[https://farrei.github.io/ligacao-ia/](https://farrei.github.io/ligacao-ia/)**
+
+> Se a página ainda não estiver no ar, ative o GitHub Pages em:  
+> [Settings → Pages](https://github.com/farrei/ligacao-ia/settings/pages) → Source: `Deploy from a branch` → Branch: `main` / `/ (root)` → Save.
+
+---
+
 ## ✨ Funcionalidades
 
 - **Tela de discador** com entrada de chave API (salva apenas em `sessionStorage`)
@@ -35,7 +44,7 @@ Ideal para portfólio: demonstra domínio de Web Speech API, Web Audio API, inte
 ## 🚀 Como usar
 
 1. Obtenha uma chave API gratuita do Gemini em [Google AI Studio](https://aistudio.google.com/app/apikey).
-2. Abra o `index.html` no navegador (ou hospede no GitHub Pages).
+2. Abra o site acima (ou o `index.html` localmente).
 3. Cole a chave API e clique em **Iniciar Ligação**.
 4. Autorize o microfone e converse naturalmente.
 
@@ -70,16 +79,6 @@ Ideal para portfólio: demonstra domínio de Web Speech API, Web Audio API, inte
 ## 🔒 Privacidade
 
 A chave API **nunca** sai do navegador do usuário. Ela é armazenada apenas em `sessionStorage` e enviada diretamente para a API do Google. Não há backend, banco de dados ou coleta de dados.
-
----
-
-## 📱 Hospedagem
-
-Pronto para **GitHub Pages**:
-
-1. Crie um repositório público
-2. Faça upload dos arquivos
-3. Ative GitHub Pages na branch `main` (pasta raiz)
 
 ---
 
