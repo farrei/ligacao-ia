@@ -142,6 +142,19 @@ class PhoneCallAI {
     if (this.errorMessage) this.errorMessage.textContent = '';
   }
 
+  getCreativeGreeting() {
+    const greetings = [
+      'Alô! Bem-vindo ao Diz IA. Pode falar, estou te ouvindo.',
+      'Oi! Aqui é o Diz IA. Ligação conectada. Em que posso ajudar?',
+      'Bem-vindo ao Diz IA! Sua linha direta com a inteligência artificial. Pode falar.',
+      'Alô, alô! Diz IA na linha. Como está seu dia? Me conta.',
+      'Oi, tudo bem? Aqui é o Diz IA. Ligação iniciada. Pode falar à vontade.',
+      'Bem-vindo ao Diz IA. Eu sou sua assistente de voz. O que você precisa hoje?',
+      'Alô! Diz IA falando. Sua chamada foi atendida. Pode falar.'
+    ];
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  }
+
   async startCall(isDemo = false) {
     this.clearError();
     this.isDemoMode = isDemo;
@@ -173,8 +186,8 @@ class PhoneCallAI {
       this.setStatus('Ouvindo...');
       if (this.waveformEl) this.waveformEl.classList.add('active');
 
-      // Saudação inicial
-      await this.speak('Bem-vindo ao Diz IA. Como posso ajudar?');
+      // Saudação criativa
+      await this.speak(this.getCreativeGreeting());
       this.startListening();
     }, 1000);
   }
