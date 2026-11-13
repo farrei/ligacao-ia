@@ -1,13 +1,10 @@
 /**
  * Ligação IA - Sistema de chamada telefônica com Gemini (100% Front-End)
- * Usa Web Speech API + Gemini generateContent + speechSynthesis
- * Privacidade: chave API apenas em sessionStorage
- * Modo Demonstração: funciona sem chave API
+ * Modo Demonstração funciona sem chave API
  */
 
 class PhoneCallAI {
   constructor() {
-    // Elementos DOM
     this.dialerScreen = document.getElementById('dialer-screen');
     this.callScreen = document.getElementById('call-screen');
     this.apiKeyInput = document.getElementById('api-key');
@@ -26,7 +23,6 @@ class PhoneCallAI {
     this.voiceSelect = document.getElementById('voice-select');
     this.contactNameEl = document.getElementById('contact-name');
 
-    // Estado
     this.apiKey = '';
     this.isDemoMode = false;
     this.recognition = null;
@@ -38,10 +34,7 @@ class PhoneCallAI {
     this.timerInterval = null;
     this.conversationHistory = [];
     this.audioContext = null;
-    this.waveformInterval = null;
     this.selectedVoice = null;
-
-    // Modelo recomendado para novos usuários (novembro 2026)
     this.model = 'gemini-3.5-flash-lite';
 
     this.init();
@@ -58,30 +51,27 @@ class PhoneCallAI {
   checkSpeechSupport() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      this.showError('Seu navegador não suporta reconhecimento de voz. Use Chrome, Edge ou Safari recente.');
-      this.startCallBtn.disabled = true;
+      this.showError('Seu navegador não suporta reconhecimento de voz. Use Chrome, Edge ou Safari.');
+      if (this.startCallBtn) this.startCallBtn.disabled = true;
       if (this.startDemoBtn) this.startDemoBtn.disabled = true;
-    }
-    if (!window.speechSynthesis) {
-      this.showError('Seu navegador não suporta síntese de voz.');
     }
   }
 
   setupEventListeners() {
-    this.apiKeyInput.addEventListener('input', () => {
-      this.startCallBtn.disabled = !this.apiKeyInput.value.trim();
-      this.clearError();
-    });
-
-    this.startCallBtn.addEventListener('click', () => this.startCall(false));
-    if (this.startDemoBtn) {
-      this.startDemoBtn.addEventListener('click', () => this.startCall(true));
+    if (this.apiKeyInput) {
+      this.apiKeyInput.addEventListener('input', () => {
+        if (this.startCallBtn) this.startCallBtn.disabled = !this.apiKeyInput.value.trim();
+        this.clearError();
+      });
     }
-    this.muteBtn.addEventListener('click', () => this.toggleMute());
-    this.keypadBtn.addEventListener('click', () => this.toggleKeypad());
-    this.pauseBtn.addEventListener('click', () => this.togglePause());
-    this.endBtn.addEventListener('click', () => this.endCall());
-    this.closeKeypadBtn.addEventListener('click', () => this.toggleKeypad(false));
+
+    if (this.startCallBtn) this.startCallBtn.addEventListener('click', () => this.startCall(false));
+    if (this.startDemoBtn) this.startDemoBtn.addEventListener('click', () => this.startCall(true));
+    if (this.muteBtn) this.muteBtn.addEventListener('click', () => this.toggleMute());
+    if (this.keypadBtn) this.keypadBtn.addEventListener('click', () => this.toggleKeypad());
+    if (this.pauseBtn) this.pauseBtn.addEventListener('click', () => this.togglePause());
+    if (this.endBtn) this.endBtn.addEventListener('click', () => this.endCall());
+    if (this.closeKeypadBtn) this.closeKeypadBtn.addEventListener('click', () => this.toggleKeypad(false));
 
     if (this.voiceSelect) {
       this.voiceSelect.addEventListener('change', () => {
@@ -91,12 +81,8 @@ class PhoneCallAI {
       });
     }
 
-    // Teclas do DTMF
     document.querySelectorAll('.key').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tone = btn.dataset.tone;
-        this.playDTMF(tone);
-      });
+      btn.addEventListener('click', () => this.playDTMF(btn.dataset.tone));
     });
   }
 
@@ -105,27 +91,19 @@ class PhoneCallAI {
       if (!this.voiceSelect) return;
       const voices = speechSynthesis.getVoices();
       const ptVoices = voices.filter(v => v.lang.startsWith('pt-BR') || v.lang.startsWith('pt'));
-      
-      while (this.voiceSelect.options.length > 1) {
-        this.voiceSelect.remove(1);
-      }
-
+      while (this.voiceSelect.options.length > 1) this.voiceSelect.remove(1);
       ptVoices.forEach(voice => {
         const opt = document.createElement('option');
         opt.value = voice.name;
         opt.textContent = `${voice.name} (${voice.lang})`;
         this.voiceSelect.appendChild(opt);
       });
-
-      const preferred = ptVoices.find(v => 
-        /google|natural|premium|enhanced|neural|female|feminino|masculino|male/i.test(v.name)
-      ) || ptVoices[0];
+      const preferred = ptVoices.find(v => /google|natural|premium|enhanced|neural/i.test(v.name)) || ptVoices[0];
       if (preferred) {
         this.selectedVoice = preferred;
         this.voiceSelect.value = preferred.name;
       }
     };
-
     populate();
     if (speechSynthesis.onvoiceschanged !== undefined) {
       speechSynthesis.onvoiceschanged = populate;
@@ -134,20 +112,19 @@ class PhoneCallAI {
 
   loadApiKey() {
     const saved = sessionStorage.getItem('gemini_api_key');
-    if (saved) {
+    if (saved && this.apiKeyInput) {
       this.apiKeyInput.value = saved;
-      this.startCallBtn.disabled = false;
+      if (this.startCallBtn) this.startCallBtn.disabled = false;
     }
   }
 
   saveApiKey() {
-    this.apiKey = this.apiKeyInput.value.trim();
-    if (this.apiKey) {
-      sessionStorage.setItem('gemini_api_key', this.apiKey);
-    }
+    this.apiKey = this.apiKeyInput ? this.apiKeyInput.value.trim() : '';
+    if (this.apiKey) sessionStorage.setItem('gemini_api_key', this.apiKey);
   }
 
   createWaveformBars() {
+    if (!this.waveformEl) return;
     this.waveformEl.innerHTML = '';
     for (let i = 0; i < 20; i++) {
       const bar = document.createElement('div');
@@ -158,11 +135,11 @@ class PhoneCallAI {
   }
 
   showError(msg) {
-    this.errorMessage.textContent = msg;
+    if (this.errorMessage) this.errorMessage.textContent = msg;
   }
 
   clearError() {
-    this.errorMessage.textContent = '';
+    if (this.errorMessage) this.errorMessage.textContent = '';
   }
 
   async startCall(isDemo = false) {
@@ -178,7 +155,7 @@ class PhoneCallAI {
       try {
         await this.testApiKey();
       } catch (err) {
-        this.showError(err.message || 'Chave de API inválida ou sem permissão.');
+        this.showError(err.message || 'Chave de API inválida.');
         return;
       }
     }
@@ -191,16 +168,16 @@ class PhoneCallAI {
     this.setStatus('Chamando...');
     this.startTimer();
 
-    setTimeout(() => {
+    setTimeout(async () => {
       this.initSpeechRecognition();
-      this.startListening();
       this.setStatus('Ouvindo...');
-      this.waveformEl.classList.add('active');
+      if (this.waveformEl) this.waveformEl.classList.add('active');
+
       if (isDemo) {
-        setTimeout(() => this.speak('Olá! Estou no modo demonstração. Pode falar comigo, mas minhas respostas são limitadas. Para uma conversa real, use sua chave do Gemini.'),
-          800);
+        await this.speak('Olá! Modo demonstração ativado. Pode falar comigo.');
       }
-    }, 1200);
+      this.startListening();
+    }, 1000);
   }
 
   async testApiKey() {
@@ -208,29 +185,26 @@ class PhoneCallAI {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: 'oi' }] }]
-      })
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'oi' }] }] })
     });
-
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      const msg = errData.error?.message || `Erro ${res.status}: modelo ou chave inválida`;
-      throw new Error(msg);
+      throw new Error(errData.error?.message || `Erro ${res.status}`);
     }
   }
 
   switchToCallScreen() {
-    this.dialerScreen.classList.remove('active');
-    this.callScreen.classList.add('active');
+    if (this.dialerScreen) this.dialerScreen.classList.remove('active');
+    if (this.callScreen) this.callScreen.classList.add('active');
   }
 
   switchToDialerScreen() {
-    this.callScreen.classList.remove('active');
-    this.dialerScreen.classList.add('active');
+    if (this.callScreen) this.callScreen.classList.remove('active');
+    if (this.dialerScreen) this.dialerScreen.classList.add('active');
   }
 
   setStatus(text) {
+    if (!this.statusEl) return;
     this.statusEl.textContent = text;
     this.statusEl.className = 'status';
     if (text.includes('Ouvindo')) this.statusEl.classList.add('listening');
@@ -241,6 +215,7 @@ class PhoneCallAI {
   startTimer() {
     this.callStartTime = Date.now();
     this.timerInterval = setInterval(() => {
+      if (!this.timerEl) return;
       const elapsed = Math.floor((Date.now() - this.callStartTime) / 1000);
       const min = String(Math.floor(elapsed / 60)).padStart(2, '0');
       const sec = String(elapsed % 60).padStart(2, '0');
@@ -250,11 +225,13 @@ class PhoneCallAI {
 
   stopTimer() {
     clearInterval(this.timerInterval);
-    this.timerEl.textContent = '00:00';
+    if (this.timerEl) this.timerEl.textContent = '00:00';
   }
 
   initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
     this.recognition = new SpeechRecognition();
     this.recognition.lang = 'pt-BR';
     this.recognition.continuous = true;
@@ -263,32 +240,25 @@ class PhoneCallAI {
 
     this.recognition.onresult = (event) => {
       if (this.isMuted || this.isPaused || this.isSpeaking) return;
-
       const last = event.results[event.results.length - 1];
       if (last.isFinal) {
         const transcript = last[0].transcript.trim();
-        if (transcript.length > 1) {
-          this.handleUserSpeech(transcript);
-        }
+        if (transcript.length > 1) this.handleUserSpeech(transcript);
       }
     };
 
     this.recognition.onerror = (event) => {
       console.warn('Speech error:', event.error);
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        this.showError('Permissão de microfone negada. Ative nas configurações do navegador.');
+        this.showError('Permissão de microfone negada.');
         this.endCall();
-      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        if (!this.isPaused && !this.isMuted) {
-          setTimeout(() => this.startListening(), 500);
-        }
       }
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
-      if (this.callScreen.classList.contains('active') && !this.isPaused && !this.isMuted && !this.isSpeaking) {
-        setTimeout(() => this.startListening(), 200);
+      if (this.callScreen && this.callScreen.classList.contains('active') && !this.isPaused && !this.isMuted && !this.isSpeaking) {
+        setTimeout(() => this.startListening(), 300);
       }
     };
   }
@@ -299,14 +269,14 @@ class PhoneCallAI {
       this.recognition.start();
       this.isListening = true;
       this.setStatus('Ouvindo...');
-    } catch (e) {}
+    } catch (e) {
+      console.warn('startListening failed', e);
+    }
   }
 
   stopListening() {
     if (this.recognition && this.isListening) {
-      try {
-        this.recognition.stop();
-      } catch (e) {}
+      try { this.recognition.stop(); } catch (e) {}
       this.isListening = false;
     }
   }
@@ -314,34 +284,24 @@ class PhoneCallAI {
   async handleUserSpeech(transcript) {
     this.stopListening();
     this.setStatus('Pensando...');
-    this.waveformEl.classList.remove('active');
+    if (this.waveformEl) this.waveformEl.classList.remove('active');
 
-    this.conversationHistory.push({
-      role: 'user',
-      parts: [{ text: transcript }]
-    });
+    this.conversationHistory.push({ role: 'user', parts: [{ text: transcript }] });
 
     try {
-      let responseText;
-      if (this.isDemoMode) {
-        responseText = this.getDemoResponse(transcript);
-      } else {
-        responseText = await this.askGemini();
-      }
+      const responseText = this.isDemoMode
+        ? this.getDemoResponse(transcript)
+        : await this.askGemini();
 
       if (responseText) {
-        this.conversationHistory.push({
-          role: 'model',
-          parts: [{ text: responseText }]
-        });
+        this.conversationHistory.push({ role: 'model', parts: [{ text: responseText }] });
         await this.speak(responseText);
       }
     } catch (err) {
       console.error(err);
-      this.setStatus('Erro ao processar');
       await this.speak('Desculpe, tive um problema. Pode repetir?');
     } finally {
-      if (!this.isPaused && !this.isMuted) {
+      if (!this.isPaused && !this.isMuted && this.waveformEl) {
         this.waveformEl.classList.add('active');
         this.startListening();
       }
@@ -349,64 +309,46 @@ class PhoneCallAI {
   }
 
   getDemoResponse(text) {
-    const t = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const t = (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-    if (/oi|olá|ola|e aí|tudo bem|bom dia|boa tarde|boa noite/.test(t)) {
+    if (/oi|ola|e ai|tudo bem|bom dia|boa tarde|boa noite/.test(t)) {
       return 'Olá! Tudo bem? Estou no modo demonstração. Como posso ajudar?';
     }
-    if (/seu nome|quem é você|quem e voce/.test(t)) {
-      return 'Sou um assistente de demonstração. Para conversas mais inteligentes, use uma chave do Gemini.';
+    if (/seu nome|quem e voce|quem e voc/.test(t)) {
+      return 'Sou um assistente de demonstração. Para conversas mais inteligentes use uma chave do Gemini.';
     }
     if (/hora|que horas/.test(t)) {
       const now = new Date();
       return `Agora são ${now.getHours()} horas e ${now.getMinutes()} minutos.`;
     }
-    if (/clima|tempo|chuva|sol/.test(t)) {
-      return 'No modo demonstração não consigo ver o clima real. Mas espero que esteja um dia agradável!';
-    }
     if (/obrigad|valeu|vlw|thanks/.test(t)) {
-      return 'De nada! Fico feliz em ajudar. Quer continuar conversando?';
+      return 'De nada! Fico feliz em ajudar.';
     }
-    if (/tchau|adeus|até|encerrar|desligar/.test(t)) {
-      return 'Tudo bem, até mais! Se quiser uma conversa real, use sua chave do Gemini.';
+    if (/tchau|adeus|ate|encerrar|desligar/.test(t)) {
+      return 'Tudo bem, até mais!';
     }
-    if (/piada|engraçado|rir/.test(t)) {
-      return 'Por que o computador foi ao médico? Porque estava com vírus! Ha ha.';
-    }
-    if (/gemini|chave|api|ia|inteligencia/.test(t)) {
-      return 'Para usar o Gemini de verdade, pegue uma chave gratuita no Google AI Studio e cole no campo da tela inicial.';
+    if (/piada|engracado/.test(t)) {
+      return 'Por que o computador foi ao médico? Porque estava com vírus!';
     }
 
     const generics = [
-      'Entendi. Pode me contar mais sobre isso?',
+      'Entendi. Pode me contar mais?',
       'Interessante. E o que você acha?',
       'Certo. Quer que eu explique alguma coisa?',
       'Ok, anotei. Tem mais alguma coisa?',
-      'Beleza. Estou aqui pra conversar.',
-      'No modo demo minhas respostas são limitadas, mas estou ouvindo!' 
+      'Beleza. Estou aqui pra conversar.'
     ];
     return generics[Math.floor(Math.random() * generics.length)];
   }
 
   async askGemini() {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
-
     const body = {
       contents: this.conversationHistory,
       systemInstruction: {
-        parts: [{
-          text: `Você é um assistente amigável falando ao telefone em português brasileiro. 
-Responda de forma curta, natural, coloquial e conversacional, como uma pessoa real ao telefone. 
-Não use Markdown, listas, asteriscos, emojis ou formatação. 
-Mantenha as respostas objetivas e com no máximo 2-3 frases. 
-Seja empático e natural.`
-        }]
+        parts: [{ text: 'Você é um assistente amigável falando ao telefone em português brasileiro. Responda de forma curta, natural e coloquial. Sem Markdown. Máximo 2-3 frases.' }]
       },
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 120,
-        topP: 0.9
-      }
+      generationConfig: { temperature: 0.8, maxOutputTokens: 120 }
     };
 
     const res = await fetch(url, {
@@ -417,48 +359,36 @@ Seja empático e natural.`
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || 'Erro na API Gemini');
+      throw new Error(err.error?.message || 'Erro na API');
     }
 
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return text.trim();
+    return (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
   }
 
   async speak(text) {
     return new Promise((resolve) => {
-      if (!text) {
+      if (!text || !window.speechSynthesis) {
         resolve();
         return;
       }
 
       this.isSpeaking = true;
       this.setStatus('Falando...');
-      this.waveformEl.classList.add('active');
+      if (this.waveformEl) this.waveformEl.classList.add('active');
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'pt-BR';
       utterance.rate = 0.95;
       utterance.pitch = 0.95;
-      utterance.volume = 1.0;
 
-      if (this.selectedVoice) {
-        utterance.voice = this.selectedVoice;
-      } else {
-        const voices = speechSynthesis.getVoices();
-        const preferred = voices.find(v => 
-          (v.lang.startsWith('pt-BR') || v.lang.startsWith('pt')) &&
-          /google|natural|premium|enhanced|neural/i.test(v.name)
-        ) || voices.find(v => v.lang.startsWith('pt-BR') || v.lang.startsWith('pt'));
-        if (preferred) utterance.voice = preferred;
-      }
+      if (this.selectedVoice) utterance.voice = this.selectedVoice;
 
       utterance.onend = () => {
         this.isSpeaking = false;
-        this.waveformEl.classList.remove('active');
+        if (this.waveformEl) this.waveformEl.classList.remove('active');
         resolve();
       };
-
       utterance.onerror = () => {
         this.isSpeaking = false;
         resolve();
@@ -471,14 +401,14 @@ Seja empático e natural.`
 
   toggleMute() {
     this.isMuted = !this.isMuted;
-    this.muteBtn.classList.toggle('active', this.isMuted);
-    this.muteBtn.querySelector('.icon').textContent = this.isMuted ? '🔇' : '🎤';
-    this.muteBtn.querySelector('.label').textContent = this.isMuted ? 'Ativar' : 'Mudo';
-
+    if (this.muteBtn) {
+      this.muteBtn.classList.toggle('active', this.isMuted);
+      this.muteBtn.querySelector('.icon').textContent = this.isMuted ? '🔇' : '🎤';
+      this.muteBtn.querySelector('.label').textContent = this.isMuted ? 'Ativar' : 'Mudo';
+    }
     if (this.isMuted) {
       this.stopListening();
       this.setStatus('Mudo');
-      this.waveformEl.classList.remove('active');
     } else if (!this.isPaused && !this.isSpeaking) {
       this.startListening();
     }
@@ -486,22 +416,23 @@ Seja empático e natural.`
 
   togglePause() {
     this.isPaused = !this.isPaused;
-    this.pauseBtn.classList.toggle('active', this.isPaused);
-    this.pauseBtn.querySelector('.icon').textContent = this.isPaused ? '▶️' : '⏸️';
-    this.pauseBtn.querySelector('.label').textContent = this.isPaused ? 'Retomar' : 'Pausar';
-
+    if (this.pauseBtn) {
+      this.pauseBtn.classList.toggle('active', this.isPaused);
+      this.pauseBtn.querySelector('.icon').textContent = this.isPaused ? '▶️' : '⏸️';
+      this.pauseBtn.querySelector('.label').textContent = this.isPaused ? 'Retomar' : 'Pausar';
+    }
     if (this.isPaused) {
       this.stopListening();
       speechSynthesis.cancel();
       this.isSpeaking = false;
       this.setStatus('Pausado');
-      this.waveformEl.classList.remove('active');
     } else if (!this.isMuted) {
       this.startListening();
     }
   }
 
   toggleKeypad(force) {
+    if (!this.keypad) return;
     const show = force !== undefined ? force : this.keypad.classList.contains('hidden');
     this.keypad.classList.toggle('hidden', !show);
   }
@@ -510,14 +441,12 @@ Seja empático e natural.`
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
-
     const frequencies = {
       '1': [697, 1209], '2': [697, 1336], '3': [697, 1477],
       '4': [770, 1209], '5': [770, 1336], '6': [770, 1477],
       '7': [852, 1209], '8': [852, 1336], '9': [852, 1477],
       '*': [941, 1209], '0': [941, 1336], '#': [941, 1477]
     };
-
     const freqs = frequencies[digit];
     if (!freqs) return;
 
@@ -539,21 +468,25 @@ Seja empático e natural.`
 
   endCall() {
     this.stopListening();
-    speechSynthesis.cancel();
+    if (window.speechSynthesis) speechSynthesis.cancel();
     this.stopTimer();
-    this.waveformEl.classList.remove('active');
+    if (this.waveformEl) this.waveformEl.classList.remove('active');
     this.isSpeaking = false;
     this.isPaused = false;
     this.isMuted = false;
     this.isDemoMode = false;
 
-    this.muteBtn.classList.remove('active');
-    this.muteBtn.querySelector('.icon').textContent = '🎤';
-    this.muteBtn.querySelector('.label').textContent = 'Mudo';
-    this.pauseBtn.classList.remove('active');
-    this.pauseBtn.querySelector('.icon').textContent = '⏸️';
-    this.pauseBtn.querySelector('.label').textContent = 'Pausar';
-    this.keypad.classList.add('hidden');
+    if (this.muteBtn) {
+      this.muteBtn.classList.remove('active');
+      this.muteBtn.querySelector('.icon').textContent = '🎤';
+      this.muteBtn.querySelector('.label').textContent = 'Mudo';
+    }
+    if (this.pauseBtn) {
+      this.pauseBtn.classList.remove('active');
+      this.pauseBtn.querySelector('.icon').textContent = '⏸️';
+      this.pauseBtn.querySelector('.label').textContent = 'Pausar';
+    }
+    if (this.keypad) this.keypad.classList.add('hidden');
 
     this.conversationHistory = [];
     this.switchToDialerScreen();
@@ -561,9 +494,8 @@ Seja empático e natural.`
   }
 }
 
-// Inicia a aplicação
 document.addEventListener('DOMContentLoaded', () => {
-  if (speechSynthesis.onvoiceschanged !== undefined) {
+  if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) {
     speechSynthesis.onvoiceschanged = () => {};
   }
   new PhoneCallAI();
