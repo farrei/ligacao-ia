@@ -2,6 +2,7 @@
  * Ligação IA - Sistema de chamada telefônica com Gemini (100% Front-End)
  * Usa Web Speech API + Gemini generateContent + speechSynthesis
  * Privacidade: chave API apenas em sessionStorage
+ * Modo Demonstração: funciona sem chave API
  */
 
 class PhoneCallAI {
@@ -11,6 +12,7 @@ class PhoneCallAI {
     this.callScreen = document.getElementById('call-screen');
     this.apiKeyInput = document.getElementById('api-key');
     this.startCallBtn = document.getElementById('start-call');
+    this.startDemoBtn = document.getElementById('start-demo');
     this.errorMessage = document.getElementById('error-message');
     this.statusEl = document.getElementById('status');
     this.timerEl = document.getElementById('timer');
@@ -22,9 +24,11 @@ class PhoneCallAI {
     this.keypad = document.getElementById('keypad');
     this.closeKeypadBtn = document.getElementById('close-keypad');
     this.voiceSelect = document.getElementById('voice-select');
+    this.contactNameEl = document.getElementById('contact-name');
 
     // Estado
     this.apiKey = '';
+    this.isDemoMode = false;
     this.recognition = null;
     this.isListening = false;
     this.isMuted = false;
@@ -56,6 +60,7 @@ class PhoneCallAI {
     if (!SpeechRecognition) {
       this.showError('Seu navegador não suporta reconhecimento de voz. Use Chrome, Edge ou Safari recente.');
       this.startCallBtn.disabled = true;
+      if (this.startDemoBtn) this.startDemoBtn.disabled = true;
     }
     if (!window.speechSynthesis) {
       this.showError('Seu navegador não suporta síntese de voz.');
@@ -68,7 +73,10 @@ class PhoneCallAI {
       this.clearError();
     });
 
-    this.startCallBtn.addEventListener('click', () => this.startCall());
+    this.startCallBtn.addEventListener('click', () => this.startCall(false));
+    if (this.startDemoBtn) {
+      this.startDemoBtn.addEventListener('click', () => this.startCall(true));
+    }
     this.muteBtn.addEventListener('click', () => this.toggleMute());
     this.keypadBtn.addEventListener('click', () => this.toggleKeypad());
     this.pauseBtn.addEventListener('click', () => this.togglePause());
@@ -98,7 +106,6 @@ class PhoneCallAI {
       const voices = speechSynthesis.getVoices();
       const ptVoices = voices.filter(v => v.lang.startsWith('pt-BR') || v.lang.startsWith('pt'));
       
-      // Limpa opções antigas (mantém a primeira)
       while (this.voiceSelect.options.length > 1) {
         this.voiceSelect.remove(1);
       }
@@ -110,7 +117,6 @@ class PhoneCallAI {
         this.voiceSelect.appendChild(opt);
       });
 
-      // Tenta pré-selecionar uma voz mais robusta/humana se existir
       const preferred = ptVoices.find(v => 
         /google|natural|premium|enhanced|neural|female|feminino|masculino|male/i.test(v.name)
       ) || ptVoices[0];
@@ -136,7 +142,9 @@ class PhoneCallAI {
 
   saveApiKey() {
     this.apiKey = this.apiKeyInput.value.trim();
-    sessionStorage.setItem('gemini_api_key', this.apiKey);
+    if (this.apiKey) {
+      sessionStorage.setItem('gemini_api_key', this.apiKey);
+    }
   }
 
   createWaveformBars() {
@@ -157,33 +165,41 @@ class PhoneCallAI {
     this.errorMessage.textContent = '';
   }
 
-  async startCall() {
+  async startCall(isDemo = false) {
     this.clearError();
-    this.saveApiKey();
+    this.isDemoMode = isDemo;
 
-    if (!this.apiKey) {
-      this.showError('Por favor, insira uma chave de API válida.');
-      return;
+    if (!isDemo) {
+      this.saveApiKey();
+      if (!this.apiKey) {
+        this.showError('Insira uma chave de API ou use o modo demonstração.');
+        return;
+      }
+      try {
+        await this.testApiKey();
+      } catch (err) {
+        this.showError(err.message || 'Chave de API inválida ou sem permissão.');
+        return;
+      }
     }
 
-    // Teste rápido da chave
-    try {
-      await this.testApiKey();
-    } catch (err) {
-      this.showError(err.message || 'Chave de API inválida ou sem permissão. Verifique em Google AI Studio.');
-      return;
+    if (this.contactNameEl) {
+      this.contactNameEl.textContent = isDemo ? 'Assistente (Demo)' : 'Assistente IA';
     }
 
     this.switchToCallScreen();
     this.setStatus('Chamando...');
     this.startTimer();
 
-    // Pequeno delay para simular "discando"
     setTimeout(() => {
       this.initSpeechRecognition();
       this.startListening();
       this.setStatus('Ouvindo...');
       this.waveformEl.classList.add('active');
+      if (isDemo) {
+        setTimeout(() => this.speak('Olá! Estou no modo demonstração. Pode falar comigo, mas minhas respostas são limitadas. Para uma conversa real, use sua chave do Gemini.'),
+          800);
+      }
     }, 1200);
   }
 
@@ -263,7 +279,6 @@ class PhoneCallAI {
         this.showError('Permissão de microfone negada. Ative nas configurações do navegador.');
         this.endCall();
       } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        // Reinicia em caso de erro recuperável
         if (!this.isPaused && !this.isMuted) {
           setTimeout(() => this.startListening(), 500);
         }
@@ -272,7 +287,6 @@ class PhoneCallAI {
 
     this.recognition.onend = () => {
       this.isListening = false;
-      // Reinicia automaticamente se a chamada estiver ativa e não estiver falando
       if (this.callScreen.classList.contains('active') && !this.isPaused && !this.isMuted && !this.isSpeaking) {
         setTimeout(() => this.startListening(), 200);
       }
@@ -285,9 +299,7 @@ class PhoneCallAI {
       this.recognition.start();
       this.isListening = true;
       this.setStatus('Ouvindo...');
-    } catch (e) {
-      // Já está ouvindo
-    }
+    } catch (e) {}
   }
 
   stopListening() {
@@ -304,14 +316,19 @@ class PhoneCallAI {
     this.setStatus('Pensando...');
     this.waveformEl.classList.remove('active');
 
-    // Adiciona ao histórico
     this.conversationHistory.push({
       role: 'user',
       parts: [{ text: transcript }]
     });
 
     try {
-      const responseText = await this.askGemini();
+      let responseText;
+      if (this.isDemoMode) {
+        responseText = this.getDemoResponse(transcript);
+      } else {
+        responseText = await this.askGemini();
+      }
+
       if (responseText) {
         this.conversationHistory.push({
           role: 'model',
@@ -329,6 +346,46 @@ class PhoneCallAI {
         this.startListening();
       }
     }
+  }
+
+  getDemoResponse(text) {
+    const t = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    if (/oi|olá|ola|e aí|tudo bem|bom dia|boa tarde|boa noite/.test(t)) {
+      return 'Olá! Tudo bem? Estou no modo demonstração. Como posso ajudar?';
+    }
+    if (/seu nome|quem é você|quem e voce/.test(t)) {
+      return 'Sou um assistente de demonstração. Para conversas mais inteligentes, use uma chave do Gemini.';
+    }
+    if (/hora|que horas/.test(t)) {
+      const now = new Date();
+      return `Agora são ${now.getHours()} horas e ${now.getMinutes()} minutos.`;
+    }
+    if (/clima|tempo|chuva|sol/.test(t)) {
+      return 'No modo demonstração não consigo ver o clima real. Mas espero que esteja um dia agradável!';
+    }
+    if (/obrigad|valeu|vlw|thanks/.test(t)) {
+      return 'De nada! Fico feliz em ajudar. Quer continuar conversando?';
+    }
+    if (/tchau|adeus|até|encerrar|desligar/.test(t)) {
+      return 'Tudo bem, até mais! Se quiser uma conversa real, use sua chave do Gemini.';
+    }
+    if (/piada|engraçado|rir/.test(t)) {
+      return 'Por que o computador foi ao médico? Porque estava com vírus! Ha ha.';
+    }
+    if (/gemini|chave|api|ia|inteligencia/.test(t)) {
+      return 'Para usar o Gemini de verdade, pegue uma chave gratuita no Google AI Studio e cole no campo da tela inicial.';
+    }
+
+    const generics = [
+      'Entendi. Pode me contar mais sobre isso?',
+      'Interessante. E o que você acha?',
+      'Certo. Quer que eu explique alguma coisa?',
+      'Ok, anotei. Tem mais alguma coisa?',
+      'Beleza. Estou aqui pra conversar.',
+      'No modo demo minhas respostas são limitadas, mas estou ouvindo!' 
+    ];
+    return generics[Math.floor(Math.random() * generics.length)];
   }
 
   async askGemini() {
@@ -381,12 +438,10 @@ Seja empático e natural.`
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'pt-BR';
-      // Ajustes para soar mais natural e robusta
       utterance.rate = 0.95;
       utterance.pitch = 0.95;
       utterance.volume = 1.0;
 
-      // Usa a voz selecionada ou a melhor disponível
       if (this.selectedVoice) {
         utterance.voice = this.selectedVoice;
       } else {
@@ -409,7 +464,6 @@ Seja empático e natural.`
         resolve();
       };
 
-      // Cancela qualquer fala anterior
       speechSynthesis.cancel();
       speechSynthesis.speak(utterance);
     });
@@ -452,7 +506,6 @@ Seja empático e natural.`
     this.keypad.classList.toggle('hidden', !show);
   }
 
-  // DTMF com Web Audio API (tons padrão de telefone)
   playDTMF(digit) {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -492,8 +545,8 @@ Seja empático e natural.`
     this.isSpeaking = false;
     this.isPaused = false;
     this.isMuted = false;
+    this.isDemoMode = false;
 
-    // Reset UI
     this.muteBtn.classList.remove('active');
     this.muteBtn.querySelector('.icon').textContent = '🎤';
     this.muteBtn.querySelector('.label').textContent = 'Mudo';
@@ -510,7 +563,6 @@ Seja empático e natural.`
 
 // Inicia a aplicação
 document.addEventListener('DOMContentLoaded', () => {
-  // Garante que as vozes estejam carregadas
   if (speechSynthesis.onvoiceschanged !== undefined) {
     speechSynthesis.onvoiceschanged = () => {};
   }
